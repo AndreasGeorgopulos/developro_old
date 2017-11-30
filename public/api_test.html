@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<!-- jQuery library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<!-- Latest compiled JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<!-- Angular -->
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+
+<style>
+    .wrapper { max-width: 1000px; min-width: 300px;  width: auto; margin: 10px auto; }
+    pre {
+        white-space: pre-wrap;       /* css-3 */
+        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+        white-space: -pre-wrap;      /* Opera 4-6 */
+        white-space: -o-pre-wrap;    /* Opera 7 */
+        word-wrap: break-word;       /* Internet Explorer 5.5+ */
+
+        background-color: #ffffff;
+        border: none;
+        padding: none;
+    }
+</style>
+
+<script type="text/javascript">
+    var http_config = {
+        url: '',
+        method: 'GET',
+        dataType: 'json',
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Requested-With': 'XMLHttpRequest',
+            //'Authorization': 'api_token=$2y$10$tq7GpAYsMIPxv/6ot1rB.OLgstXcVZJbadLtQrm6KE33GNeRjA8IK'
+        }
+        /*headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Requested-With': 'XMLHttpRequest'
+        }*/
+    };
+
+    var app = angular.module('app', []);
+    app.controller('Ctrl', function($scope, $http) {
+        $scope.apiUrl = '';
+        $scope.params = [];
+        $scope.selectedMethod = 'GET';
+        $scope.requesting = 0;
+        $scope.result = undefined;
+
+        $scope.addParam = function () {
+            if ($scope.param_key !== undefined && $scope.param_value !== undefined) {
+                $scope.params.push({ key: $scope.param_key, value: $scope.param_value });
+                $scope.param_key = undefined;
+                $scope.param_value = undefined;
+            }
+        };
+
+        $scope.removeParam = function (index) {
+            $scope.params.splice(index, 1);
+        };
+
+        $scope.request = function () {
+            $scope.requesting = 1;
+            $scope.result = undefined;
+
+            http_config.method = $scope.selectedMethod;
+            http_config.url = $scope.apiUrl;
+            http_config.data = {};
+            angular.forEach($scope.params, function (p) {
+                http_config.data[p.key] = p.value;
+            });
+
+            $http(http_config).then(function (response) {
+                $scope.result = response;
+                $scope.requesting = 0;
+            }, function (error) {
+                $scope.result = error;
+                $scope.requesting = 0;
+            });
+        };
+    });
+
+</script>
+</head>
+
+<body>
+
+<div class="wrapper" ng-app="app" ng-controller="Ctrl">
+    <div class="col-md-5 col-sm-6">
+        <div class="panel panel-primary">
+            <div class="panel-heading">Http request settings</div>
+            <form name="paramForm">
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label>Url</label>
+                        <input required type="text" ng-model="apiUrl" class="form-control"  />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Method</label>
+                        <div class="clearfix"></div>
+                        <label class="radio-inline"><input type="radio" name="method" ng-model="selectedMethod" value="GET">GET</label>
+                        <label class="radio-inline"><input type="radio" name="method" ng-model="selectedMethod" value="PUT">PUT</label>
+                        <label class="radio-inline"><input type="radio" name="method" ng-model="selectedMethod" value="POST">POST</label>
+                        <label class="radio-inline"><input type="radio" name="method" ng-model="selectedMethod" value="DELETE">DELETE</label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Parameters</label>
+                        <div class="row">
+                            <div class="col-md-5 col-sm-5">
+                                <input type="text" ng-model="param_key" class="form-control" placeholder="Key" />
+                            </div>
+                            <div class="col-md-5 col-sm-5">
+                                <input type="text" ng-model="param_value" class="form-control" placeholder="Value" />
+                            </div>
+                            <div class="col-md-2 col-sm-2 text-right">
+                                <button class="btn btn-default" ng-click="addParam()"><span class="glyphicon glyphicon-plus"></span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" ng-repeat="p in params">
+                        <label>{{p.key}}</label>
+                        <div class="row">
+                            <div class="col-md-10 col-sm-10"><input required type="text" ng-model="p.value" name="{{p.key}}" class="form-control" /></div>
+                            <div class="col-md-2 col-sm-2 text-right"><button class="btn btn-default" ng-click="removeParam($index)"><span class="glyphicon glyphicon-minus"></span></button></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-footer text-right">
+                    <button class="btn btn-primary" ng-click="request()" ng-disabled="paramForm.$error.required || requesting">Send request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-7 col-sm-6">
+        <div ng-class="result ? (result.status >= 200 && result.status < 300 ? 'panel panel-success' : 'panel panel-danger') : 'panel panel-default'">
+            <div class="panel-heading">
+                <span ng-if="!result && !requesting">Response</span>
+                <span ng-if="!result && requesting">Requesting</span>
+                <span ng-if="result">{{result.status}} - {{result.statusText}}</span>
+            </div>
+            <div class="panel-body">
+                <pre>{{result.data | json}}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
